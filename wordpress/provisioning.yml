@@ -1,0 +1,75 @@
+---  
+- hosts: localhost  
+  connection: local  
+  gather_facts: no    
+  vars:  
+    #your region  
+    region: eu-north-1
+    keyname: wordpress-eunorth-1
+    #your ip address
+    allowed_ip: 0.0.0.0/0
+    instance_type: t3.micro     
+    image:
+      id: ami-0decbb1739c22d50c
+  tasks:  
+    - name: create key pair  
+      tags: keypair  
+      ec2_key:  
+        region: "{{ region }}"  
+        name: "{{ keyname }}"      
+      register: mykey  
+
+    - name: write the private key to file
+      copy: content="{{ mykey.key.private_key }}" dest="~/.ssh/{{ keyname }}.pem" mode=0600
+      when: mykey.changed
+
+    - name: create security group  
+      tags: sg
+      ec2_group:    
+        region: "{{ region }}"
+        #your security group name  
+        name: sg_wordpress_eunorth_1    
+        description: security group for eunorth1 webserver host
+        rules:
+          # allow ssh access from your ip address  
+          - proto: tcp  
+            from_port: 22  
+            to_port: 22  
+            cidr_ip: "{{ allowed_ip }}"  
+          # allow http access from anywhere  
+          - proto: tcp  
+            from_port: 80    
+            to_port: 80    
+            cidr_ip: 0.0.0.0/0    
+          # allow https access from anywhere  
+          - proto: tcp  
+            from_port: 443    
+            to_port: 443    
+            cidr_ip: 0.0.0.0/0
+        rules_egress:  
+          - proto: all  
+            cidr_ip: 0.0.0.0/0    
+
+    - name: launch ec2 instance  
+      tags: ec2
+      local_action:  
+        module: amazon.aws.ec2_instance
+        region: "{{ region }}"  
+        key_name: "{{ keyname }}"
+        instance_type: "{{ instance_type }}"    
+        image: "{{ image }}"  
+        wait: yes    
+        security_groups:
+          - sg_wordpress_eunorth_1
+        tags:  
+          Name: wordpress-1  
+          class: wordpress
+      register: ec2    
+    - name: allocate a new elastic IP and associate it with an instance
+      local_action:
+        module: amazon.aws.ec2_eip
+        device_id: "{{ item.instance_id }}"
+        region: "{{ region }}"
+      loop: "{{ ec2.instances }}"
+      when: item.tags.Name == "wordpress-1"
+      

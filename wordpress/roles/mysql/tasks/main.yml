@@ -1,0 +1,17 @@
+---
+- name: install mysql server and dependencies
+  dnf: name={{ item }} state=present
+  with_items:
+  - mysql-server
+  - python3-pip
+
+- name: install mysqlclient for python
+  ansible.builtin.pip:
+    name: pymysql
+      
+- name: create mysql configuration file
+  template: src=my.cnf.j2 dest=/etc/my.cnf
+  notify: restart mysql
+  
+- name: start mysql service
+  service: name=mysqld state=started enabled=true

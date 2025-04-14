@@ -1,0 +1,16 @@
+---
+- name: install php and required dependencies(and wget)
+  dnf: name={{ item }} state=present
+  with_items:
+    - php
+    - php-mysqlnd
+    - php-fpm
+    - php-gd
+    - php-mbstring
+    - php-xml
+    - php-json
+    - php-curl
+    - php-zip
+    - php-opcache
+    - wget
+  notify: restart httpd

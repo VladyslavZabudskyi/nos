@@ -1,0 +1,23 @@
+---
+- name: install httpd
+  dnf: name=httpd state=present
+
+- name: create content directory for wordpress
+  file:
+    path: '/var/www/{{ http_host }}'
+    state: directory
+    mode: '0755'
+
+- name: configure virtual host for wordpress
+  template:
+    src: 'wordpress.conf.j2'
+    dest: '/etc/httpd/conf.d/wordpress.conf'
+
+- name: remove default website
+  file:
+    path: '/etc/httpd/conf.d/autoindex.conf'
+    state: absent
+  notify: restart httpd
+
+- name: start and enable httpd
+  service: name=httpd state=started enabled=yes
