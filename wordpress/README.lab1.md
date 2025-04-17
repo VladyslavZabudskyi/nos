@@ -13,6 +13,7 @@ ansible-galaxy collection install amazon.aws
 ```
 ansible-galaxy collection list
 ```
+**Примітка: може знадобитися встановити наступні бібліотеки Python: **```apt install python3-boto python3-botocore```
 
 ### Крок 2 - скрипт динамічного репозиторію
 Наданий у книжці скрипт динамічного інвентаря ec2.py, який на момент певно 2014 року був актуальним, застарів на момент виконання лабораторної роботи:
