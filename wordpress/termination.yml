@@ -1,0 +1,43 @@
+---
+- name: terminate wordpress instance
+  hosts: localhost
+  gather_facts: false
+  connection: local
+  vars:
+    region: eu-north-1
+    keyname: wordpress-eunorth-1
+    wp_sgroup_id: "{{ (hostvars['wordpress-1'].security_groups | selectattr('group_name', 'equalto', 'sg_wordpress_eunorth_1') | list | first).group_id }}"
+    wp_instance_id: "{{ hostvars['wordpress-1'].instance_id }}"
+    wp_public_ip: "{{ hostvars['wordpress-1'].public_ip_address }}"
+  tasks:
+    - name: disassosiate and release eip
+      amazon.aws.ec2_eip:
+        device_id: "{{ wp_instance_id }}"
+        ip: "{{ wp_public_ip }}"
+        region: "{{ region }}"
+        release_on_disassociation: true
+        state: absent
+
+    - name: terminate instance
+      amazon.aws.ec2_instance:
+        instance_ids: "{{ [wp_instance_id] }}"
+        region: "{{ region }}"
+        wait: true
+        state: absent
+
+    - name: delete security group
+      amazon.aws.ec2_security_group:
+        group_id: "{{ wp_sgroup_id }}"
+        region: "{{ region }}"
+        state: absent
+
+    - name: remove key pair from AWS by name
+      amazon.aws.ec2_key:
+        name: "{{ keyname }}"
+        region: "{{ region }}"
+        state: absent
+
+    - name: remove private key
+      ansible.builtin.file:
+        path: "~/.ssh/{{ keyname }}.pem"
+        state: absent
